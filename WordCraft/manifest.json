@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "WordCraft",
+  "version": "1.0",
+  "description": "Improve your writing with real-time grammar checking.",
+  "permissions": [
+    "activeTab", 
+    "scripting", 
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": ["https://api.afterthedeadline.com/checkDocument"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "assets/icon.png"
+  },
+  "icons": {
+    "48": "assets/icon.png"
+  }
+}
