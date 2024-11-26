@@ -1,168 +1,118 @@
+import csv
 import requests
 from bs4 import BeautifulSoup
-import json
-from urllib.parse import urljoin
-import time
-from pprint import pprint
 
-def scrape_website(url):
-    """
-    Scrape website focusing on elements with class 'link-5' and their hrefs
-    """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
-    }
-
-    try:
-        print(f"Scraping {url}...")
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Initialize dictionary for scraped data
-        scraped_data = {
-            'link5_elements': []
-        }
-
-        # Find all elements with class 'link-5'
-        link5_elements = soup.find_all(class_='list-item-5')
-        pprint(link5_elements)
-
+class WebScraperToCSV:
+    def __init__(self, url, output_csv='scraped_data.csv'):
+        """
+        Initialize the web scraper
         
-        for element in link5_elements:
-            # print(element.find('a', class_='link-5'))
-            # print(element.find('img', class_='image-4')['src'])
+        :param url: URL of the webpage to scrape
+        :param output_csv: Path to the output CSV file
+        """
+        self.url = url
+        self.output_csv = output_csv
 
-            # Get the element data
-            element_data = {
-                'text': element.find('a', class_='link-5').get_text(strip=True),
-                'href': element.find('a', class_='link-5')['href'],
-                'tag_type': element.find('img', class_='image-4')['src']
-            }
-            
-            # If the element itself is a link, get its href
-            # if element.name == 'a':
-            #     element_data['href'] = urljoin(url, element.get('href', ''))
-            
-            # # If the element contains a link, get the href from the contained link
-            # contained_link = element.find('a')
-            # if contained_link:
-            #     element_data['href'] = urljoin(url, contained_link.get('href', ''))
-            
-            scraped_data['link5_elements'].append(element_data)
-
-        # Save to JSON file with timestamp
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        output_file = f'scraped_link5_content_{timestamp}.json'
+    def fetch_webpage(self):
+        """
+        Fetch the webpage content
         
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(scraped_data, f, indent=2, ensure_ascii=False)
+        :return: HTML content of the webpage
+        """
+        try:
+            response = requests.get(self.url)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching the webpage: {e}")
+            return None
 
-        # Print summary
-        # print("\nScraping completed!")
-        # print(f"Found {len(scraped_data['link5_elements'])} elements with class 'link-5'")
-        # print(f"\nData saved to {output_file}")
-
-        # # Print detailed findings
-        # print("\nDetailed findings:")
-        # for idx, item in enumerate(scraped_data['link5_elements'], 1):
-        #     print(f"\nItem {idx}:")
-        #     print(f"Text: {item['text']}")
-        #     print(f"Link: {item['href'] if item['href'] else 'No link found'}")
-        #     print(f"HTML Tag: {item['tag_type']}")
-
-        return scraped_data
-
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching the website: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
-# Alternative version that also checks for specific heading classes
-def scrape_website_with_headings(url):
-    """
-    Scrape website focusing on elements with class 'link-5' and specific heading elements
-    """
-    try:
-        print(f"Scraping {url}...")
-        response = requests.get(url, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124 Safari/537.36'
-        })
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Initialize dictionary for scraped data
-        scraped_data = {
-            'link5_elements': [],
-            'headings': []
-        }
-
-        # Find link-5 elements
-        link5_elements = soup.find_all(class_='link-5')
-        for element in link5_elements:
-            element_data = {
-                'text': element.get_text(strip=True),
-                'href': None,
-                'tag_type': element.name,
-                'classes': ' '.join(element.get('class', []))
-            }
-            
-            if element.name == 'a':
-                element_data['href'] = urljoin(url, element.get('href', ''))
-            elif contained_link := element.find('a'):
-                element_data['href'] = urljoin(url, contained_link.get('href', ''))
-            
-            scraped_data['link5_elements'].append(element_data)
-
-        # Find all headings with specific classes
-        heading_tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
-        for heading in heading_tags:
-            heading_data = {
-                'level': heading.name,
-                'text': heading.get_text(strip=True),
-                'classes': ' '.join(heading.get('class', [])),
-                'contained_link': None
-            }
-            
-            # Check for links within the heading
-            if contained_link := heading.find('a'):
-                heading_data['contained_link'] = {
-                    'text': contained_link.get_text(strip=True),
-                    'href': urljoin(url, contained_link.get('href', ''))
-                }
-            
-            scraped_data['headings'].append(heading_data)
-
-        # Save to JSON file with timestamp
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        output_file = f'scraped_detailed_content_{timestamp}.json'
+    def parse_webpage(self, html_content):
+        """
+        Parse the webpage and extract data
         
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(scraped_data, f, indent=2, ensure_ascii=False)
+        :param html_content: HTML content of the webpage
+        :return: List of dictionaries containing the scraped data (including duplicates)
+        """
+        try:
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Collect all items
+            data = []
+            list_items = soup.find_all('li', class_='list-item-5')
+            
+            for item in list_items:
+                image = item.find('img')
+                link = item.find('a', class_='link-5')
+                heading = item.find('strong')
+                
+                # Locate the section heading by finding the closest preceding <h3>
+                section_heading = None
+                current = item
+                while current:
+                    previous = current.find_previous_sibling()
+                    if previous and previous.name == 'h3':
+                        section_heading = previous.text.strip()
+                        break
+                    current = previous
+                
+                # Append the extracted data
+                data.append({
+                    'Image Src': image['src'] if image else None,
+                    'Link Href': link['href'] if link else None,
+                    'Heading': heading.text.strip() if heading else None,
+                    'Section Heading': section_heading,
+                })
+            
+            return data
+        except Exception as e:
+            print(f"Error parsing the webpage: {e}")
+            return None
 
-        # Print summary
-        print("\nScraping completed!")
-        print(f"Found:")
-        print(f"- {len(scraped_data['link5_elements'])} elements with class 'link-5'")
-        print(f"- {len(scraped_data['headings'])} heading elements")
-        print(f"\nData saved to {output_file}")
+    def save_to_csv(self, data):
+        """
+        Save data to a CSV file, including duplicates
+        
+        :param data: List of dictionaries containing the scraped data
+        """
+        if not data:
+            print("No data to save.")
+            return
+        
+        try:
+            # Write all data, including duplicates, to CSV
+            keys = data[0].keys()
+            with open(self.output_csv, 'w', newline='', encoding='utf-8') as output_file:
+                dict_writer = csv.DictWriter(output_file, fieldnames=keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(data)
+            
+            print(f"All data, including duplicates, successfully saved to {self.output_csv}")
+        except Exception as e:
+            print(f"Error saving to CSV: {e}")
 
-        return scraped_data
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+    def run(self):
+        """
+        Run the entire scraping and saving process
+        """
+        html_content = self.fetch_webpage()
+        if not html_content:
+            print("Failed to fetch webpage. Exiting.")
+            return
+        
+        data = self.parse_webpage(html_content)
+        if not data:
+            print("Failed to parse webpage. Exiting.")
+            return
+        
+        self.save_to_csv(data)
 
 if __name__ == "__main__":
-    website_url = "https://www.coldiq.com/ai-sales-tools"
+    # Replace with the target URL
+    url = "https://www.coldiq.com/ai-sales-tools"
     
-    # Choose which version to run
-    # For basic version (just link-5 elements):
-    scraped_data = scrape_website(website_url)
+    # Specify the output CSV file
+    output_csv = "scraped_data_including_duplicates.csv"
     
-    # For detailed version (link-5 elements and headings):
-    # scraped_data = scrape_website_with_headings(website_url)
+    scraper = WebScraperToCSV(url, output_csv)
+    scraper.run()
