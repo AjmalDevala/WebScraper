@@ -21,8 +21,8 @@ This Python-based web scraping tool allows you to extract data from web pages an
 # Clone the repository
 git clone https://github.com/AjmalDevala/WebScraper.git
 
-# Navigate to project directory
-cd WebScraper
+# Navigate to the project directory
+cd web scraper
 
 # Install required dependencies
 pip install requests beautifulsoup4
@@ -43,7 +43,7 @@ scraper.run()
 
 - `requests`
 - `beautifulsoup4`
-- `csv` (built-in)
+- `CSV` (built-in)
 
 ## 👤 Author
 
